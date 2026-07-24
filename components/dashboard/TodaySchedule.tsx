@@ -1,11 +1,29 @@
 import Link from "next/link";
-import { CalendarX2, CheckCircle2, Clock, User, Video } from "lucide-react";
+import { toast } from "sonner";
+import {
+  CalendarX2,
+  CheckCircle2,
+  Clock,
+  Copy,
+  MapPin,
+  User,
+  Video,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { cn } from "@/lib/utils";
 import type { ScheduleEntry } from "@/types/dashboard";
+
+async function handleCopyMeetLink(link: string) {
+  try {
+    await navigator.clipboard.writeText(link);
+    toast.success("Meet link copied to clipboard.");
+  } catch {
+    toast.error("Couldn't copy the link.");
+  }
+}
 
 interface TodayScheduleProps {
   schedule: ScheduleEntry[];
@@ -32,7 +50,7 @@ export default function TodaySchedule({ schedule, today }: TodayScheduleProps) {
         <div className="flex flex-col">
           {schedule.map((entry, index) => (
             <div key={entry.batchId}>
-              <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-medium text-foreground">
@@ -40,6 +58,21 @@ export default function TodaySchedule({ schedule, today }: TodayScheduleProps) {
                     </p>
                     <Badge variant="secondary" className="rounded-full">
                       {entry.subject}
+                    </Badge>
+                    <Badge
+                      className={cn(
+                        "gap-1 rounded-full border-transparent",
+                        entry.googleMeetLink
+                          ? "bg-blue-50 text-blue-600 hover:bg-blue-50 dark:bg-blue-500/10 dark:text-blue-400"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300"
+                      )}
+                    >
+                      {entry.googleMeetLink ? (
+                        <Video className="h-3 w-3" aria-hidden="true" />
+                      ) : (
+                        <MapPin className="h-3 w-3" aria-hidden="true" />
+                      )}
+                      {entry.googleMeetLink ? "Online" : "In-Person"}
                     </Badge>
                     <Badge
                       className={cn(
@@ -65,23 +98,35 @@ export default function TodaySchedule({ schedule, today }: TodayScheduleProps) {
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                   {entry.googleMeetLink && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="h-9 rounded-lg"
-                    >
-                      <a
-                        href={entry.googleMeetLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="h-9 rounded-lg"
                       >
-                        <Video className="mr-1.5 h-3.5 w-3.5" />
-                        Meet
-                      </a>
-                    </Button>
+                        <a
+                          href={entry.googleMeetLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Video className="mr-1.5 h-3.5 w-3.5" />
+                          Meet
+                        </a>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 rounded-lg"
+                        onClick={() => handleCopyMeetLink(entry.googleMeetLink)}
+                      >
+                        <Copy className="mr-1.5 h-3.5 w-3.5" />
+                        Copy Link
+                      </Button>
+                    </>
                   )}
                   <Button
                     asChild

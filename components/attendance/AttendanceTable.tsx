@@ -58,11 +58,10 @@ function EmptyState() {
         />
       </div>
       <p className="text-sm font-medium text-foreground">
-        No attendance sessions found
+        No sessions match your filters
       </p>
       <p className="max-w-xs text-sm text-muted-foreground">
-        Try adjusting your filters, or mark attendance for a batch to get
-        started.
+        Try adjusting your search or filters.
       </p>
     </div>
   );

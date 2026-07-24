@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import { Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,7 +36,9 @@ function GoogleIcon() {
   )
 }
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams()
+  const oauthError = searchParams.get('error')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
 
@@ -72,6 +76,12 @@ export default function LoginPage() {
 
         <Card className="w-full rounded-2xl border-slate-200 shadow-lg transition-shadow duration-200 hover:shadow-xl dark:border-slate-800">
           <CardContent className="p-6 sm:p-8">
+            {oauthError && (
+              <p className="mb-5 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
+                {oauthError}
+              </p>
+            )}
+
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="email">Email</Label>
@@ -138,5 +148,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   )
 }

@@ -1,0 +1,68 @@
+import Link from "next/link";
+import { CheckCircle2, Layers, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+
+export default function WelcomeOnboarding() {
+  return (
+    <Card className="rounded-2xl border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <CardContent className="flex flex-col items-center gap-8 p-8 text-center sm:p-12">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-2xl font-semibold text-foreground">
+            Welcome to Tuition Manager 👋
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Let&apos;s set up your tuition.
+          </p>
+        </div>
+
+        <div className="flex w-full max-w-md flex-col">
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <span className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+              Step 1
+            </span>
+            <p className="text-base font-medium text-foreground">
+              Create your first batch
+            </p>
+            <Button asChild className="h-11 gap-2 rounded-xl">
+              <Link href="/dashboard/batches/new">
+                <Layers className="h-4 w-4" aria-hidden="true" />
+                Create Batch
+              </Link>
+            </Button>
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <span className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+              Step 2
+            </span>
+            <p className="text-base font-medium text-foreground">
+              Add your students
+            </p>
+            <Button asChild variant="outline" className="h-11 gap-2 rounded-xl">
+              <Link href="/dashboard/students/new">
+                <UserPlus className="h-4 w-4" aria-hidden="true" />
+                Add Students
+              </Link>
+            </Button>
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col items-center gap-2 pt-6 text-center">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Step 3
+            </span>
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Start tracking attendance, fees and marks.
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

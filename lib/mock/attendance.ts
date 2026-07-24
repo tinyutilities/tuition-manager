@@ -14,6 +14,7 @@ import type { WeekDay } from "@/types/batch";
 import { getBatchById, mockBatches } from "@/lib/mock/batch";
 import { mockStudents } from "@/lib/mock/student";
 import { seededRandom, toDateKey, toMonthKey } from "@/lib/utils";
+import { USE_DEMO_DATA } from "@/lib/config";
 
 export { toDateKey };
 
@@ -80,7 +81,13 @@ function generateSeedAttendance(): AttendanceRecord[] {
   return records;
 }
 
-export const mockAttendanceRecords: AttendanceRecord[] = generateSeedAttendance();
+// A first-time user hasn't marked any attendance yet — only seed demo data
+// when the feature flag is on (see lib/config.ts). This also cascades
+// naturally: generateSeedAttendance() derives everything from mockStudents,
+// so it would already produce [] once that repository is empty.
+export const mockAttendanceRecords: AttendanceRecord[] = USE_DEMO_DATA
+  ? generateSeedAttendance()
+  : [];
 
 export function getAttendanceById(id: string): AttendanceRecord | undefined {
   return mockAttendanceRecords.find((record) => record.id === id);

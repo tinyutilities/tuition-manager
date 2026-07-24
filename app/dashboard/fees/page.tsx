@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ReceiptText } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { cn } from "@/lib/utils";
 import FeeStats from "@/components/fees/FeeStats";
@@ -19,7 +21,7 @@ import {
   recordPayment,
 } from "@/lib/mock/fees";
 import { getBatchById, mockBatches } from "@/lib/mock/batch";
-import { getStudentById } from "@/lib/mock/student";
+import { getStudentById, mockStudents } from "@/lib/mock/student";
 import type { FeeRecord, FeeTableRow, PaymentInput } from "@/types/fees";
 
 function currentMonthKey() {
@@ -173,7 +175,7 @@ export default function FeesPage() {
         description="Track fee payments, pending dues, and payment history."
       />
 
-      <FeeStats stats={stats} />
+      {allRows.length > 0 && <FeeStats stats={stats} />}
 
       <DashboardCard
         title="Monthly Collection"
@@ -234,9 +236,15 @@ export default function FeesPage() {
             No fee records yet
           </p>
           <p className="max-w-xs text-sm text-muted-foreground">
-            Fee records are generated automatically each month for enrolled
-            students.
+            {mockStudents.length === 0
+              ? "Fee records are generated automatically once you have enrolled students."
+              : "Fee records are generated automatically each month for enrolled students."}
           </p>
+          {mockStudents.length === 0 && (
+            <Button asChild className="mt-2 h-11 rounded-xl">
+              <Link href="/dashboard/students/new">Add Student</Link>
+            </Button>
+          )}
         </div>
       ) : (
         <FeeTable

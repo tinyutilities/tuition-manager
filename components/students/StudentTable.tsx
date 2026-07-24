@@ -8,8 +8,10 @@ import {
   Users2,
   Phone,
 } from "lucide-react";
+import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -23,6 +25,7 @@ import type { Student } from "@/types/student";
 interface StudentTableProps {
   students: Student[];
   isLoading?: boolean;
+  hasAnyStudents?: boolean;
   onViewStudent?: (student: Student) => void;
   onEditStudent?: (student: Student) => void;
   onDeleteStudent?: (student: Student) => void;
@@ -208,7 +211,7 @@ function TableSkeleton() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ hasAnyStudents }: { hasAnyStudents: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
@@ -217,12 +220,29 @@ function EmptyState() {
           aria-hidden="true"
         />
       </div>
-      <p className="text-sm font-medium text-foreground">
-        No students found
-      </p>
-      <p className="max-w-xs text-sm text-muted-foreground">
-        Try adjusting your filters or add a new student to get started.
-      </p>
+      {hasAnyStudents ? (
+        <>
+          <p className="text-sm font-medium text-foreground">
+            No students match your filters
+          </p>
+          <p className="max-w-xs text-sm text-muted-foreground">
+            Try adjusting your search or filters.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-medium text-foreground">
+            No students yet
+          </p>
+          <p className="max-w-xs text-sm text-muted-foreground">
+            Add your first student to start tracking attendance, fees and
+            marks.
+          </p>
+          <Button asChild className="mt-2 h-11 rounded-xl">
+            <Link href="/dashboard/students/new">Add Student</Link>
+          </Button>
+        </>
+      )}
     </div>
   );
 }
@@ -230,6 +250,7 @@ function EmptyState() {
 export default function StudentTable({
   students,
   isLoading = false,
+  hasAnyStudents = false,
   onViewStudent,
   onEditStudent,
   onDeleteStudent,
@@ -245,7 +266,7 @@ export default function StudentTable({
   if (students.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-        <EmptyState />
+        <EmptyState hasAnyStudents={hasAnyStudents} />
       </div>
     );
   }

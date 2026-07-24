@@ -63,11 +63,10 @@ function EmptyState() {
         />
       </div>
       <p className="text-sm font-medium text-foreground">
-        No fee records found
+        No fee records match your filters
       </p>
       <p className="max-w-xs text-sm text-muted-foreground">
-        Try adjusting your filters. Fee records are generated automatically
-        each month for enrolled students.
+        Try adjusting your search or filters.
       </p>
     </div>
   );

@@ -19,6 +19,7 @@ import type {
 import { getBatchById, getStudentsByBatch, mockBatches } from "@/lib/mock/batch";
 import { mockStudents } from "@/lib/mock/student";
 import { seededRandom, toDateKey, toMonthKey } from "@/lib/utils";
+import { USE_DEMO_DATA } from "@/lib/config";
 
 const PASS_THRESHOLD = 35;
 
@@ -118,7 +119,11 @@ function generateSeedData(): { tests: Test[]; marks: MarkRecord[] } {
   return { tests, marks };
 }
 
-const seed = generateSeedData();
+// A first-time user hasn't created any tests yet — only seed demo data when
+// the feature flag is on (see lib/config.ts). This also cascades naturally:
+// generateSeedData() derives everything from mockBatches, so it would
+// already produce empty arrays once that repository is empty.
+const seed = USE_DEMO_DATA ? generateSeedData() : { tests: [], marks: [] };
 export const mockTests: Test[] = seed.tests;
 export const mockMarks: MarkRecord[] = seed.marks;
 

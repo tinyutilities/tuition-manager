@@ -59,9 +59,11 @@ function EmptyState() {
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
         <Users className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
       </div>
-      <p className="text-sm font-medium text-foreground">No tests found</p>
+      <p className="text-sm font-medium text-foreground">
+        No tests match your filters
+      </p>
       <p className="max-w-xs text-sm text-muted-foreground">
-        Try adjusting your filters, or create a test to get started.
+        Try adjusting your search or filters.
       </p>
     </div>
   );

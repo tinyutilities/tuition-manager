@@ -123,7 +123,7 @@ export default function MarksPage() {
         }
       />
 
-      <MarksStats stats={stats} />
+      {allSummaries.length > 0 && <MarksStats stats={stats} />}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <DashboardCard title="Highest Scorer" description="Best result across all tests">

@@ -12,6 +12,7 @@ import type {
 } from "@/types/fees";
 import { mockStudents } from "@/lib/mock/student";
 import { toDateKey, toMonthKey } from "@/lib/utils";
+import { USE_DEMO_DATA } from "@/lib/config";
 
 // Monthly billing rate per batch. Fees don't have a rate field on Batch yet
 // (Prisma's Fee.amount is per-record, not derived), so this table is the
@@ -143,7 +144,11 @@ function generateSeedFees(): { fees: FeeRecord[]; payments: Payment[] } {
   return { fees, payments };
 }
 
-const seed = generateSeedFees();
+// A first-time user has no billing history yet — only seed demo data when
+// the feature flag is on (see lib/config.ts). This also cascades naturally:
+// generateSeedFees() derives everything from mockStudents, so it would
+// already produce empty arrays once that repository is empty.
+const seed = USE_DEMO_DATA ? generateSeedFees() : { fees: [], payments: [] };
 export const mockFeeRecords: FeeRecord[] = seed.fees;
 export const mockPayments: Payment[] = seed.payments;
 

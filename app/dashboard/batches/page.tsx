@@ -144,7 +144,7 @@ export default function BatchesPage() {
         }
       />
 
-      <BatchStats stats={stats} />
+      {batches.length > 0 && <BatchStats stats={stats} />}
 
       <BatchFilters
         searchTerm={searchTerm}
@@ -184,12 +184,28 @@ export default function BatchesPage() {
               aria-hidden="true"
             />
           </div>
-          <p className="text-sm font-medium text-foreground">
-            No batches found
-          </p>
-          <p className="max-w-xs text-sm text-muted-foreground">
-            Try adjusting your filters or add a new batch to get started.
-          </p>
+          {batches.length === 0 ? (
+            <>
+              <p className="text-sm font-medium text-foreground">
+                No batches yet
+              </p>
+              <p className="max-w-xs text-sm text-muted-foreground">
+                Create your first batch to start enrolling students.
+              </p>
+              <Button asChild className="mt-2 h-11 rounded-xl">
+                <Link href="/dashboard/batches/new">Create Batch</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-foreground">
+                No batches match your filters
+              </p>
+              <p className="max-w-xs text-sm text-muted-foreground">
+                Try adjusting your search or filters.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -9,8 +9,9 @@ import type {
 } from "@/types/batch";
 import { mockStudents } from "@/lib/mock/student";
 import type { Student } from "@/types/student";
+import { USE_DEMO_DATA } from "@/lib/config";
 
-export const mockBatches: Batch[] = [
+const DEMO_BATCHES: Batch[] = [
   {
     id: "batch-a",
     name: "Batch A",
@@ -64,6 +65,10 @@ export const mockBatches: Batch[] = [
     createdAt: "2025-05-04T09:00:00.000Z",
   },
 ];
+
+// A first-time user has created nothing yet — only seed demo data when the
+// feature flag is on (see lib/config.ts).
+export const mockBatches: Batch[] = USE_DEMO_DATA ? DEMO_BATCHES : [];
 
 const WEEKDAY_LABELS: Record<WeekDay, string> = {
   mon: "Mon",

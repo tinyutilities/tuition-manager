@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Card, CardContent } from '@/components/ui/card'
 import { Logo } from '@/components/branding/logo'
 import { PageHeader } from '@/components/layout/page-header'
+import { createClient } from '@/lib/supabase/client'
 
 function GoogleIcon() {
   return (
@@ -44,8 +45,20 @@ export default function SignupPage() {
     // Backend authentication to be added later
   }
 
-  function handleGoogleSignIn() {
-    // Backend authentication to be added later
+  async function handleGoogleSignIn() {
+    const supabase = createClient()
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      console.error(error)
+      alert(error.message)
+    }
   }
 
   return (

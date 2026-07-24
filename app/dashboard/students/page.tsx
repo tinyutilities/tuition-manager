@@ -128,7 +128,7 @@ export default function StudentsPage() {
         }
       />
 
-      <StudentStats stats={stats} />
+      {students.length > 0 && <StudentStats stats={stats} />}
 
       <StudentFilters
         searchTerm={searchTerm}
@@ -146,6 +146,7 @@ export default function StudentsPage() {
       <StudentTable
         students={filteredStudents}
         isLoading={isLoading}
+        hasAnyStudents={students.length > 0}
         onViewStudent={handleViewStudent}
         onEditStudent={handleEditStudent}
         onDeleteStudent={handleDeleteStudent}

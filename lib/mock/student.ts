@@ -2,8 +2,9 @@
 
 import type { Student, StudentFormData, StudentStatsData } from "@/types/student";
 import { getBatchById } from "@/lib/mock/batch";
+import { USE_DEMO_DATA } from "@/lib/config";
 
-export const mockStudents: Student[] = [
+const DEMO_STUDENTS: Student[] = [
   {
     id: "stu-001",
     firstName: "Aarav",
@@ -705,6 +706,10 @@ export const mockStudents: Student[] = [
     createdAt: "2025-07-05T09:00:00.000Z",
   },
 ];
+
+// A first-time user has created nothing yet — only seed demo data when the
+// feature flag is on (see lib/config.ts).
+export const mockStudents: Student[] = USE_DEMO_DATA ? DEMO_STUDENTS : [];
 
 export function computeStudentStats(students: Student[]): StudentStatsData {
   return {

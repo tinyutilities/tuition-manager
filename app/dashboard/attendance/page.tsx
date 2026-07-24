@@ -108,7 +108,7 @@ export default function AttendancePage() {
         }
       />
 
-      <AttendanceStats stats={stats} />
+      {allSessions.length > 0 && <AttendanceStats stats={stats} />}
 
       <DashboardCard
         title="Today's Overview"
