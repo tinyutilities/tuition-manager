@@ -20,7 +20,7 @@ export function Logo({ size = 32, showText = true, className }: LogoProps) {
       initial="rest"
       animate="rest"
       role="img"
-      aria-label="Tuition Manager logo"
+      aria-label="BatchPilot logo"
     >
       <motion.div
         variants={{
@@ -35,7 +35,7 @@ export function Logo({ size = 32, showText = true, className }: LogoProps) {
           'shadow-sm'
         )}
       >
-        {/* Custom mark: open book with a checkmark bookmark — distinctive to Tuition Manager */}
+        {/* Custom mark: open book with a checkmark bookmark — distinctive to BatchPilot */}
         <svg
           width={markSize}
           height={markSize}
@@ -83,7 +83,7 @@ export function Logo({ size = 32, showText = true, className }: LogoProps) {
           )}
           style={{ fontSize: Math.max(14, Math.round(size * 0.5)) }}
         >
-          Tuition Manager
+          BatchPilot
         </motion.span>
       )}
     </motion.div>

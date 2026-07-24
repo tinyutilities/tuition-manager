@@ -80,7 +80,7 @@ export default function AppSidebar({ activeItem }: AppSidebarProps) {
       {/* Logo */}
       <div className="border-b border-slate-200 px-6 py-6">
         <h1 className="text-lg font-semibold text-slate-900">
-          Tuition Manager
+          BatchPilot
         </h1>
         <p className="text-xs text-slate-500">Teacher Portal</p>
       </div>
@@ -134,7 +134,7 @@ export default function AppSidebar({ activeItem }: AppSidebarProps) {
         </button>
 
         <p className="mt-4 text-center text-xs text-slate-400">
-          Tuition Manager v1.0
+          BatchPilot v1.0
         </p>
       </div>
     </aside>

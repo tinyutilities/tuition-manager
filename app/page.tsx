@@ -59,7 +59,7 @@ export default function Home() {
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <span className="text-lg font-semibold text-slate-900">
-            Tuition Manager
+            BatchPilot
           </span>
           <Link
             href="/auth/login"
@@ -125,7 +125,7 @@ export default function Home() {
         <section className="border-t border-slate-200 bg-slate-50">
           <div className="mx-auto max-w-6xl px-6 py-20">
             <h2 className="text-center text-3xl font-bold text-slate-900">
-              Why Choose Tuition Manager
+              Why Choose BatchPilot
             </h2>
             <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {highlights.map((highlight) => {
@@ -152,7 +152,7 @@ export default function Home() {
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-6 py-10 text-center">
           <span className="text-sm font-semibold text-slate-900">
-            Tuition Manager
+            BatchPilot
           </span>
           <span className="text-sm text-slate-600">© 2026</span>
           <span className="text-sm text-slate-600">Built by Anushka Kar</span>
