@@ -1,14 +1,147 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+}
+
+model Teacher {
+  id        String   @id
+  name      String?
+  username  String?
+  email     String   @unique
+  phone     String?
+  imageUrl  String?
+  isActive  Boolean  @default(true)
+  role      Role     @default(TEACHER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  batches Batch[]
+
+  @@map("teachers")
+}
+
+model Batch {
+  id             String   @id
+  name           String
+  subject        String?
+  description    String?
+  googleMeetLink String?
+  isArchived     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  teacherId      String
+
+  teacher     Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  attendances Attendance[]
+  exams       Exam[]
+  fees        Fee[]
+  students    Student[]
+
+  @@index([teacherId])
+  @@map("batches")
+}
+
+model Student {
+  id         String   @id
+  name       String
+  rollNumber String?
+  phone      String?
+  school     String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  batchId    String
+
+  batch       Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  attendances Attendance[]
+  fees        Fee[]
+  marks       Mark[]
+
+  @@unique([batchId, rollNumber])
+  @@index([batchId])
+  @@map("students")
+}
+
+model Attendance {
+  id        String           @id
+  date      DateTime
+  status    AttendanceStatus
+  studentId String
+  batchId   String
+
+  batch   Batch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, studentId, date])
+  @@index([batchId])
+  @@index([date])
+  @@index([studentId])
+  @@map("attendances")
+}
+
+model Fee {
+  id        String    @id
+  amount    Decimal   @db.Decimal(10, 2)
+  dueDate   DateTime
+  paid      Boolean   @default(false)
+  paidDate  DateTime?
+  month     String?
+  remarks   String?
+  studentId String
+  batchId   String
+
+  batch   Batch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@index([studentId])
+  @@map("fees")
+}
+
+model Exam {
+  id          String   @id
+  subject     String
+  description String?
+  totalMarks  Int
+  examDate    DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  batchId     String
+
+  batch Batch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  marks Mark[]
+
+  @@index([batchId])
+  @@map("exams")
+}
+
+model Mark {
+  id        String  @id
+  marks     Decimal @db.Decimal(6, 2)
+  remarks   String?
+  studentId String
+  examId    String
+
+  exam    Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, examId])
+  @@index([examId])
+  @@index([studentId])
+  @@map("marks")
 }

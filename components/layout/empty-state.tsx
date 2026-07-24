@@ -1,0 +1,58 @@
+import * as React from 'react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+
+interface EmptyStateProps {
+  title: string
+  description?: string
+  buttonText?: string
+  href?: string
+  icon?: React.ReactNode
+  className?: string
+}
+
+export function EmptyState({
+  title,
+  description,
+  buttonText,
+  href,
+  icon,
+  className,
+}: EmptyStateProps) {
+  return (
+    <Card
+      className={cn(
+        'border-dashed transition-colors hover:border-gray-300',
+        className
+      )}
+    >
+      <CardContent className="flex flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+        {icon && (
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 transition-transform duration-300 hover:scale-105 dark:bg-indigo-500/10 dark:text-indigo-400">
+            {icon}
+          </div>
+        )}
+
+        <div className="flex max-w-sm flex-col gap-1.5">
+          <p className="text-base font-semibold text-gray-900 dark:text-white">
+            {title}
+          </p>
+          {description && (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          )}
+        </div>
+
+        {buttonText && href && (
+          <Button
+            asChild
+            className="mt-2 transition-transform duration-200 hover:scale-[1.03]"
+          >
+            <Link href={href}>{buttonText}</Link>
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
