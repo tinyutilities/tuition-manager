@@ -1,263 +1,461 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { format } from "date-fns";
+import { CalendarCheck, Pencil, Trash2, UserX, Wallet } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { PageHeader } from "@/components/layout/page-header";
+import StudentCard from "@/components/students/StudentCard";
+import StudentDeleteDialog from "@/components/students/StudentDeleteDialog";
+import AttendanceCalendar from "@/components/attendance/AttendanceCalendar";
+import AttendanceStatusBadge from "@/components/attendance/AttendanceStatusBadge";
+import PaymentStatusBadge from "@/components/fees/PaymentStatusBadge";
+import PaymentDialog from "@/components/fees/PaymentDialog";
+import GradeBadge from "@/components/marks/GradeBadge";
+import PerformanceChart from "@/components/shared/PerformanceChart";
+import { deleteStudent, getStudentById } from "@/lib/mock/student";
 import {
-  Mail,
-  MapPin,
-  Phone,
-  School,
-  User,
-  Pencil,
-  CalendarCheck,
-  ClipboardList,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
-import { PageHeader } from '@/components/layout/page-header'
-import { DashboardCard } from '@/components/dashboard/dashboard-card'
-import { StatCard } from '@/components/dashboard/stat-card'
-
-const student = {
-  name: 'Aarav Sharma',
-  rollNumber: 'MX11-01',
-  batch: 'Mathematics XI',
-  school: 'Delhi Public School',
-  parentName: 'Rakesh Sharma',
-  parentPhone: '+91 98765 43210',
-  studentPhone: '+91 91234 56780',
-  email: 'aarav.sharma@example.com',
-  address: '24 Lakeview Colony, New Delhi, 110034',
-}
-
-const testResults = [
-  { test: 'Unit Test 3', date: '18 Jul', marks: '43 / 50', percentage: 86 },
-  { test: 'Unit Test 2', date: '02 Jul', marks: '46 / 50', percentage: 92 },
-  { test: 'Mid Term', date: '20 Jun', marks: '78 / 100', percentage: 78 },
-  { test: 'Unit Test 1', date: '05 Jun', marks: '41 / 50', percentage: 82 },
-  { test: 'Diagnostic Test', date: '22 May', marks: '44 / 50', percentage: 88 },
-]
-
-const attendanceRecords = [
-  { date: '21 Jul', status: 'Present' as const },
-  { date: '20 Jul', status: 'Present' as const },
-  { date: '19 Jul', status: 'Absent' as const },
-  { date: '18 Jul', status: 'Present' as const },
-  { date: '17 Jul', status: 'Present' as const },
-  { date: '16 Jul', status: 'Present' as const },
-  { date: '15 Jul', status: 'Absent' as const },
-]
-
-const notes = [
-  'Excellent improvement in mathematics.',
-  'Needs more practice in Physics numericals.',
-  'Parents informed regarding attendance.',
-]
-
-function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
+  getAttendanceByStudent,
+  getStudentAttendanceSummary,
+} from "@/lib/mock/attendance";
+import {
+  formatPaymentMethod,
+  getOrCreateCurrentMonthFee,
+  getStudentFeeSummary,
+  monthLabel,
+  recordPayment,
+} from "@/lib/mock/fees";
+import { getStudentMarkSummary } from "@/lib/mock/marks";
+import type { FeeRecord, PaymentInput } from "@/types/fees";
 
 export default function StudentProfilePage() {
+  const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const studentId = params.id;
+
+  const [feeRefreshKey, setFeeRefreshKey] = useState(0);
+  const student = useMemo(
+    () => getStudentById(studentId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [studentId, feeRefreshKey]
+  );
+  const attendanceRecords = useMemo(
+    () => getAttendanceByStudent(studentId),
+    [studentId]
+  );
+  const attendanceSummary = useMemo(
+    () => getStudentAttendanceSummary(studentId),
+    [studentId]
+  );
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [paymentFee, setPaymentFee] = useState<FeeRecord | null>(null);
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+  const feeSummary = useMemo(
+    () => getStudentFeeSummary(studentId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [studentId, feeRefreshKey]
+  );
+  const marksSummary = useMemo(
+    () => getStudentMarkSummary(studentId),
+    [studentId]
+  );
+
+  if (!student) {
+    return (
+      <div className="flex flex-col gap-8">
+        <PageHeader
+          title="Student not found"
+          description="This student may have been removed."
+        />
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center dark:border-slate-800 dark:bg-slate-950">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+            <UserX
+              className="h-6 w-6 text-muted-foreground"
+              aria-hidden="true"
+            />
+          </div>
+          <p className="text-sm font-medium text-foreground">
+            Student not found
+          </p>
+          <p className="max-w-xs text-sm text-muted-foreground">
+            Go back to the student list to continue.
+          </p>
+          <Button asChild className="mt-2 h-11 rounded-xl">
+            <Link href="/dashboard/students">Back to Students</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  function handleConfirmDelete() {
+    if (!student) return;
+    deleteStudent(student.id);
+    setIsDeleteOpen(false);
+    toast.success(`${student.fullName} was removed from your students.`);
+    router.push("/dashboard/students");
+  }
+
+  function handleOpenPayment() {
+    const fee = getOrCreateCurrentMonthFee(studentId);
+    if (!fee) {
+      toast.error("This student isn't assigned to a batch, so no fee can be billed.");
+      return;
+    }
+    setPaymentFee(fee);
+    setFeeRefreshKey((key) => key + 1);
+  }
+
+  function handleSubmitPayment(input: PaymentInput) {
+    if (!paymentFee) return;
+    setIsSubmittingPayment(true);
+    const payment = recordPayment(paymentFee.id, input);
+    if (payment) {
+      toast.success(`₹${input.amount.toLocaleString("en-IN")} payment recorded.`);
+      setFeeRefreshKey((key) => key + 1);
+    }
+    setPaymentFee(null);
+    setIsSubmittingPayment(false);
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title={student.name}
+        title={student.fullName}
         description="Student profile and academic overview."
         action={
-          <Button className="h-11 rounded-xl">
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit Student
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild className="h-11 rounded-xl">
+              <Link href={`/dashboard/students/${student.id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Student
+              </Link>
+            </Button>
+            <Button
+              variant="destructive"
+              className="h-11 rounded-xl"
+              onClick={() => setIsDeleteOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </div>
         }
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left column */}
         <div className="flex flex-col gap-6 lg:col-span-1">
-          <DashboardCard title="Student Information">
-            <div className="flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-14 w-14">
-                  <AvatarFallback className="bg-indigo-100 text-base font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-                    {getInitials(student.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <p className="text-sm font-semibold text-foreground">
-                    {student.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Roll No. {student.rollNumber}
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="flex flex-col gap-3 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <User className="h-4 w-4 shrink-0 text-slate-400" />
-                  <span className="text-foreground">{student.batch}</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <School className="h-4 w-4 shrink-0 text-slate-400" />
-                  {student.school}
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <User className="h-4 w-4 shrink-0 text-slate-400" />
-                  Parent: {student.parentName}
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="h-4 w-4 shrink-0 text-slate-400" />
-                  {student.parentPhone}
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="h-4 w-4 shrink-0 text-slate-400" />
-                  {student.studentPhone}
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="h-4 w-4 shrink-0 text-slate-400" />
-                  {student.email}
-                </div>
-                <div className="flex items-start gap-2 text-muted-foreground">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                  {student.address}
-                </div>
-              </div>
-            </div>
-          </DashboardCard>
+          <StudentCard student={student} />
 
           <div className="grid grid-cols-2 gap-4">
             <StatCard
               title="Attendance"
-              value="92%"
+              value={`${student.attendancePercentage}%`}
               icon={<CalendarCheck className="h-5 w-5" />}
-              color="green"
-            />
-            <StatCard
-              title="Tests Taken"
-              value={18}
-              icon={<ClipboardList className="h-5 w-5" />}
-              color="blue"
-            />
-            <StatCard
-              title="Average Marks"
-              value="87%"
-              icon={<ClipboardList className="h-5 w-5" />}
-              color="indigo"
+              color={student.attendancePercentage >= 75 ? "green" : "rose"}
             />
             <StatCard
               title="Pending Fees"
-              value="₹2,000"
-              icon={<ClipboardList className="h-5 w-5" />}
-              color="amber"
+              value={`₹${student.pendingFees.toLocaleString("en-IN")}`}
+              icon={<Wallet className="h-5 w-5" />}
+              color={student.pendingFees === 0 ? "green" : "amber"}
             />
           </div>
         </div>
 
-        {/* Right column */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           <DashboardCard
-            title="Recent Test Results"
-            description="Latest exam performance"
+            title="Enrollment Overview"
+            description="Academic and enrollment details"
           >
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-muted-foreground dark:border-slate-800">
-                    <th className="py-2 pr-4">Test</th>
-                    <th className="py-2 pr-4">Date</th>
-                    <th className="py-2 pr-4">Marks</th>
-                    <th className="py-2">Percentage</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {testResults.map((result, index) => (
-                    <tr
-                      key={result.test}
-                      className={
-                        index < testResults.length - 1
-                          ? 'border-b border-slate-100 dark:border-slate-800'
-                          : ''
-                      }
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <dt className="text-xs font-medium text-muted-foreground">
+                  Status
+                </dt>
+                <dd>
+                  {student.status === "active" ? (
+                    <Badge className="rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400">
+                      Active
+                    </Badge>
+                  ) : (
+                    <Badge className="rounded-full bg-slate-100 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400">
+                      Inactive
+                    </Badge>
+                  )}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-1">
+                <dt className="text-xs font-medium text-muted-foreground">
+                  Batch
+                </dt>
+                <dd className="text-sm font-medium text-foreground">
+                  {student.batchName}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-1">
+                <dt className="text-xs font-medium text-muted-foreground">
+                  Gender
+                </dt>
+                <dd className="text-sm font-medium capitalize text-foreground">
+                  {student.gender}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-1">
+                <dt className="text-xs font-medium text-muted-foreground">
+                  Date of Birth
+                </dt>
+                <dd className="text-sm font-medium text-foreground">
+                  {format(new Date(student.dateOfBirth), "d MMM yyyy")}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-1">
+                <dt className="text-xs font-medium text-muted-foreground">
+                  School
+                </dt>
+                <dd className="text-sm font-medium text-foreground">
+                  {student.school}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-1">
+                <dt className="text-xs font-medium text-muted-foreground">
+                  Enrolled Since
+                </dt>
+                <dd className="text-sm font-medium text-foreground">
+                  {format(new Date(student.createdAt), "d MMM yyyy")}
+                </dd>
+              </div>
+            </dl>
+          </DashboardCard>
+
+          <DashboardCard
+            title="Attendance History"
+            description={`${attendanceSummary.totalRecords} recorded session${
+              attendanceSummary.totalRecords === 1 ? "" : "s"
+            } · ${attendanceSummary.attendancePercentage}% attendance`}
+          >
+            <div className="flex flex-col gap-6">
+              <AttendanceCalendar records={attendanceRecords} />
+
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <span>{attendanceSummary.presentCount} present</span>
+                <span>{attendanceSummary.absentCount} absent</span>
+                <span>{attendanceSummary.lateCount} late</span>
+                <span>{attendanceSummary.excusedCount} excused</span>
+              </div>
+
+              {attendanceRecords.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No attendance has been recorded for this student yet.
+                </p>
+              ) : (
+                <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-900">
+                  {attendanceRecords.slice(0, 6).map((record) => (
+                    <div
+                      key={record.id}
+                      className="flex items-center justify-between py-3"
                     >
-                      <td className="py-3 pr-4 font-medium text-foreground">
-                        {result.test}
-                      </td>
-                      <td className="py-3 pr-4 text-muted-foreground">
-                        {result.date}
-                      </td>
-                      <td className="py-3 pr-4 text-muted-foreground">
-                        {result.marks}
-                      </td>
-                      <td className="py-3 text-foreground">
-                        {result.percentage}%
-                      </td>
-                    </tr>
+                      <span className="text-sm text-foreground">
+                        {format(new Date(record.date), "d MMM yyyy")}
+                      </span>
+                      <AttendanceStatusBadge status={record.status} />
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              )}
             </div>
           </DashboardCard>
 
           <DashboardCard
-            title="Recent Attendance"
-            description="Last 7 recorded sessions"
+            title="Fee History"
+            description={`₹${feeSummary.pendingBalance.toLocaleString(
+              "en-IN"
+            )} pending`}
+            action={
+              <Button
+                type="button"
+                size="sm"
+                className="rounded-xl"
+                onClick={handleOpenPayment}
+                disabled={feeSummary.pendingBalance <= 0}
+              >
+                Record Payment
+              </Button>
+            }
           >
-            <div className="flex flex-col">
-              {attendanceRecords.map((record, index) => (
-                <div key={record.date + index}>
-                  <div className="flex items-center justify-between py-3">
-                    <p className="text-sm font-medium text-foreground">
-                      {record.date}
-                    </p>
-                    <Badge
-                      className={
-                        record.status === 'Present'
-                          ? 'rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400'
-                          : 'rounded-full bg-rose-50 text-rose-600 hover:bg-rose-50 dark:bg-rose-500/10 dark:text-rose-400'
-                      }
-                    >
-                      {record.status}
-                    </Badge>
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <span>
+                  Billed: ₹{feeSummary.totalBilled.toLocaleString("en-IN")}
+                </span>
+                <span>
+                  Paid: ₹{feeSummary.totalPaid.toLocaleString("en-IN")}
+                </span>
+                <span>
+                  Overdue: ₹{feeSummary.overdueAmount.toLocaleString("en-IN")}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Fees by Month
+                </p>
+                {feeSummary.fees.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No fees have been billed for this student yet.
+                  </p>
+                ) : (
+                  <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-900">
+                    {feeSummary.fees.map((fee) => (
+                      <div
+                        key={fee.id}
+                        className="flex items-center justify-between py-3"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-foreground">
+                            {monthLabel(fee.month)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Due {format(new Date(fee.dueDate), "d MMM yyyy")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-muted-foreground">
+                            ₹{fee.amountPaid.toLocaleString("en-IN")} / ₹
+                            {fee.amount.toLocaleString("en-IN")}
+                          </span>
+                          <PaymentStatusBadge status={fee.status} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  {index < attendanceRecords.length - 1 && <Separator />}
-                </div>
-              ))}
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Recent Payments
+                </p>
+                {feeSummary.payments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No payments have been recorded for this student yet.
+                  </p>
+                ) : (
+                  <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-900">
+                    {feeSummary.payments.slice(0, 5).map((payment) => (
+                      <div
+                        key={payment.id}
+                        className="flex items-center justify-between py-3 text-sm"
+                      >
+                        <span className="text-foreground">
+                          {format(new Date(payment.date), "d MMM yyyy")}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {formatPaymentMethod(payment.method)}
+                        </span>
+                        <span className="font-medium text-foreground">
+                          ₹{payment.amount.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </DashboardCard>
 
-          <DashboardCard title="Notes" description="Teacher remarks">
-            <ul className="flex flex-col gap-3">
-              {notes.map((note, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-sm text-muted-foreground"
-                >
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500" />
-                  {note}
-                </li>
-              ))}
-            </ul>
-          </DashboardCard>
+          <DashboardCard
+            title="Marks"
+            description={`${marksSummary.testsCount} test${
+              marksSummary.testsCount === 1 ? "" : "s"
+            } · ${marksSummary.overallPercentage}% overall`}
+          >
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <span>Overall: {marksSummary.overallPercentage}%</span>
+                <span>
+                  Trend:{" "}
+                  {marksSummary.trend === "up"
+                    ? "Improving"
+                    : marksSummary.trend === "down"
+                      ? "Declining"
+                      : "Steady"}
+                </span>
+              </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button className="h-11 flex-1 rounded-xl">
-              Mark Attendance
-            </Button>
-            <Button
-              variant="outline"
-              className="h-11 flex-1 rounded-xl"
-            >
-              Record Marks
-            </Button>
-          </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Subject Averages
+                </p>
+                <PerformanceChart
+                  data={marksSummary.subjectAverages.map((s) => ({
+                    label: s.subject,
+                    percentage: s.averagePercentage,
+                  }))}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Recent Tests
+                </p>
+                {marksSummary.records.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No marks have been recorded for this student yet.
+                  </p>
+                ) : (
+                  <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-900">
+                    {marksSummary.records.slice(0, 6).map((record) => (
+                      <div
+                        key={record.id}
+                        className="flex items-center justify-between py-3"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-foreground">
+                            {record.test.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {record.test.subject} ·{" "}
+                            {format(new Date(record.test.testDate), "d MMM yyyy")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-muted-foreground">
+                            {record.marksObtained} / {record.test.maxMarks}
+                          </span>
+                          <GradeBadge grade={record.grade} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </DashboardCard>
         </div>
       </div>
+
+      <StudentDeleteDialog
+        student={isDeleteOpen ? student : null}
+        onOpenChange={setIsDeleteOpen}
+        onConfirm={handleConfirmDelete}
+      />
+
+      <PaymentDialog
+        fee={paymentFee}
+        studentName={student.fullName}
+        isSubmitting={isSubmittingPayment}
+        onOpenChange={(open) => {
+          if (!open) setPaymentFee(null);
+        }}
+        onSubmit={handleSubmitPayment}
+      />
     </div>
-  )
+  );
 }

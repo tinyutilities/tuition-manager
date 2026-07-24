@@ -1,240 +1,223 @@
-'use client'
+"use client";
 
-import * as React from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Separator } from '@/components/ui/separator'
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Layers, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import BatchStats from "@/components/batches/BatchStats";
+import BatchFilters from "@/components/batches/BatchFilters";
+import BatchCard from "@/components/batches/BatchCard";
+import BatchDeleteDialog from "@/components/batches/BatchDeleteDialog";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  mockBatches,
+  computeBatchStats,
+  getStudentsByBatch,
+  deleteBatch,
+} from "@/lib/mock/batch";
+import type { Batch } from "@/types/batch";
 
-const daysOfWeek = [
-  { id: 'mon', label: 'Monday' },
-  { id: 'tue', label: 'Tuesday' },
-  { id: 'wed', label: 'Wednesday' },
-  { id: 'thu', label: 'Thursday' },
-  { id: 'fri', label: 'Friday' },
-  { id: 'sat', label: 'Saturday' },
-  { id: 'sun', label: 'Sunday' },
-]
+export default function BatchesPage() {
+  const router = useRouter();
 
-export default function NewBatchPage() {
-  const router = useRouter()
+  const [batches, setBatches] = useState<Batch[]>(mockBatches);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [name, setName] = React.useState('')
-  const [subject, setSubject] = React.useState('')
-  const [level, setLevel] = React.useState('')
-  const [batchColor, setBatchColor] = React.useState('#2563eb')
-  const [selectedDays, setSelectedDays] = React.useState<string[]>([])
-  const [startTime, setStartTime] = React.useState('')
-  const [endTime, setEndTime] = React.useState('')
-  const [notes, setNotes] = React.useState('')
-  const [daysError, setDaysError] = React.useState(false)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedSort, setSelectedSort] = useState("name-asc");
 
-  function toggleDay(dayId: string, checked: boolean) {
-    setSelectedDays((prev) =>
-      checked ? [...prev, dayId] : prev.filter((d) => d !== dayId)
-    )
-    setDaysError(false)
+  const [batchPendingDelete, setBatchPendingDelete] = useState<Batch | null>(
+    null
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 400);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const stats = useMemo(() => computeBatchStats(batches), [batches]);
+
+  const subjects = useMemo(() => {
+    return Array.from(new Set(batches.map((batch) => batch.subject))).sort(
+      (a, b) => a.localeCompare(b)
+    );
+  }, [batches]);
+
+  const filteredBatches = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    const filtered = batches.filter((batch) => {
+      const matchesSearch =
+        query.length === 0 ||
+        batch.name.toLowerCase().includes(query) ||
+        batch.subject.toLowerCase().includes(query) ||
+        batch.teacherName.toLowerCase().includes(query);
+
+      const matchesSubject =
+        selectedSubject === "all" || batch.subject === selectedSubject;
+
+      const matchesStatus =
+        selectedStatus === "all" || batch.status === selectedStatus;
+
+      return matchesSearch && matchesSubject && matchesStatus;
+    });
+
+    const sorted = [...filtered].sort((a, b) => {
+      switch (selectedSort) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "enrolled-desc":
+          return (
+            getStudentsByBatch(b.id).length - getStudentsByBatch(a.id).length
+          );
+        case "enrolled-asc":
+          return (
+            getStudentsByBatch(a.id).length - getStudentsByBatch(b.id).length
+          );
+        case "capacity-desc":
+          return b.capacity - a.capacity;
+        case "capacity-asc":
+          return a.capacity - b.capacity;
+        case "newest":
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        case "oldest":
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [batches, searchTerm, selectedSubject, selectedStatus, selectedSort]);
+
+  function handleResetFilters() {
+    setSearchTerm("");
+    setSelectedSubject("all");
+    setSelectedStatus("all");
+    setSelectedSort("name-asc");
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  function handleViewBatch(batch: Batch) {
+    router.push(`/dashboard/batches/${batch.id}`);
+  }
 
-    if (selectedDays.length === 0) {
-      setDaysError(true)
-      return
+  function handleEditBatch(batch: Batch) {
+    router.push(`/dashboard/batches/${batch.id}/edit`);
+  }
+
+  function handleDeleteBatch(batch: Batch) {
+    setBatchPendingDelete(batch);
+  }
+
+  function handleConfirmDelete(batch: Batch) {
+    const deleted = deleteBatch(batch.id);
+    if (deleted) {
+      setBatches((prev) => prev.filter((b) => b.id !== batch.id));
+      toast.success(`${batch.name} was deleted.`);
     }
-
-    // Backend logic to be added later
+    setBatchPendingDelete(null);
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2">
-          <Link href="/dashboard/batches">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Batches
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-semibold text-gray-900">Create Batch</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Set up a new batch to start adding students.
-        </p>
-      </div>
+      <PageHeader
+        title="Batches"
+        description="Manage tuition batches, schedules and enrollment."
+        action={
+          <Button asChild className="h-11 gap-2 rounded-xl">
+            <Link href="/dashboard/batches/new">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add Batch
+            </Link>
+          </Button>
+        }
+      />
 
-      <Card className="max-w-3xl">
-        <CardHeader>
-          <CardTitle>Batch Details</CardTitle>
-          <CardDescription>
-            Fill in the information below to create a new batch.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-            {/* Class Details */}
-            <div className="flex flex-col gap-6">
-              <h3 className="text-sm font-semibold text-gray-900">
-                Class Details
-              </h3>
+      <BatchStats stats={stats} />
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="name">Class Name</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g. Evening Physics Batch"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+      <BatchFilters
+        searchTerm={searchTerm}
+        selectedSubject={selectedSubject}
+        selectedStatus={selectedStatus}
+        selectedSort={selectedSort}
+        subjects={subjects}
+        onSearchChange={setSearchTerm}
+        onSubjectChange={setSelectedSubject}
+        onStatusChange={setSelectedStatus}
+        onSortChange={setSelectedSort}
+        onReset={handleResetFilters}
+      />
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950"
+            >
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-8 w-8 rounded-lg" />
               </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="subject">
-                  Subject <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="subject"
-                  placeholder="e.g. Physics"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="level">Level / Standard</Label>
-                <Input
-                  id="level"
-                  placeholder="e.g. Class 10, NEET, JEE, Beginners"
-                  value={level}
-                  onChange={(e) => setLevel(e.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="batchColor">Batch Color</Label>
-                <div className="flex items-center gap-3">
-                  <input
-                    id="batchColor"
-                    type="color"
-                    value={batchColor}
-                    onChange={(e) => setBatchColor(e.target.value)}
-                    className="h-10 w-14 cursor-pointer rounded-md border border-gray-200 bg-white p-1"
-                  />
-                  <span className="text-sm text-gray-600">{batchColor}</span>
-                </div>
-              </div>
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-2 w-full rounded-full" />
             </div>
+          ))}
+        </div>
+      ) : filteredBatches.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center dark:border-slate-800 dark:bg-slate-950">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+            <Layers
+              className="h-6 w-6 text-muted-foreground"
+              aria-hidden="true"
+            />
+          </div>
+          <p className="text-sm font-medium text-foreground">
+            No batches found
+          </p>
+          <p className="max-w-xs text-sm text-muted-foreground">
+            Try adjusting your filters or add a new batch to get started.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredBatches.map((batch) => (
+            <BatchCard
+              key={batch.id}
+              batch={batch}
+              enrolledCount={getStudentsByBatch(batch.id).length}
+              onView={handleViewBatch}
+              onEdit={handleEditBatch}
+              onDelete={handleDeleteBatch}
+            />
+          ))}
+        </div>
+      )}
 
-            <Separator />
-
-            {/* Schedule */}
-            <div className="flex flex-col gap-6">
-              <h3 className="text-sm font-semibold text-gray-900">
-                Schedule
-              </h3>
-
-              <div className="flex flex-col gap-3">
-                <Label>
-                  Days <span className="text-red-500">*</span>
-                </Label>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {daysOfWeek.map((day) => (
-                    <div key={day.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={day.id}
-                        checked={selectedDays.includes(day.id)}
-                        onCheckedChange={(checked) =>
-                          toggleDay(day.id, checked === true)
-                        }
-                      />
-                      <Label
-                        htmlFor={day.id}
-                        className="text-sm font-normal text-gray-700"
-                      >
-                        {day.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-                {daysError && (
-                  <p className="text-sm text-red-500">
-                    Please select at least one day.
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="startTime">
-                    Start Time <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="endTime">
-                    End Time <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Notes */}
-            <div className="flex flex-col gap-6">
-              <h3 className="text-sm font-semibold text-gray-900">Notes</h3>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="notes">Notes (optional)</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Optional instructions, classroom details or syllabus coverage."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={4}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <Button type="submit">Create Batch</Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push('/dashboard/batches')}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <BatchDeleteDialog
+        batch={batchPendingDelete}
+        enrolledCount={
+          batchPendingDelete
+            ? getStudentsByBatch(batchPendingDelete.id).length
+            : 0
+        }
+        onOpenChange={(open) => {
+          if (!open) setBatchPendingDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
-  )
+  );
 }

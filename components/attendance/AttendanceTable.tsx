@@ -1,0 +1,181 @@
+"use client";
+
+import { format } from "date-fns";
+import { CalendarX2, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import type { BatchAttendanceSession } from "@/types/attendance";
+
+interface AttendanceTableProps {
+  sessions: BatchAttendanceSession[];
+  isLoading?: boolean;
+  onViewSession: (session: BatchAttendanceSession) => void;
+  onViewBatch: (session: BatchAttendanceSession) => void;
+}
+
+function getRateColor(percentage: number) {
+  if (percentage >= 90) return "text-emerald-600 dark:text-emerald-400";
+  if (percentage >= 75) return "text-blue-600 dark:text-blue-400";
+  if (percentage >= 50) return "text-amber-600 dark:text-amber-400";
+  return "text-red-600 dark:text-red-400";
+}
+
+function TableSkeleton() {
+  return (
+    <div className="flex flex-col">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="flex items-center gap-4 border-b border-slate-100 px-6 py-4 last:border-0 dark:border-slate-900"
+        >
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="ml-auto h-8 w-8 rounded-lg" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+        <CalendarX2
+          className="h-6 w-6 text-muted-foreground"
+          aria-hidden="true"
+        />
+      </div>
+      <p className="text-sm font-medium text-foreground">
+        No attendance sessions found
+      </p>
+      <p className="max-w-xs text-sm text-muted-foreground">
+        Try adjusting your filters, or mark attendance for a batch to get
+        started.
+      </p>
+    </div>
+  );
+}
+
+export default function AttendanceTable({
+  sessions,
+  isLoading = false,
+  onViewSession,
+  onViewBatch,
+}: AttendanceTableProps) {
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+        <TableSkeleton />
+      </div>
+    );
+  }
+
+  if (sessions.length === 0) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+        <EmptyState />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Date</TableHead>
+            <TableHead>Batch</TableHead>
+            <TableHead>Present</TableHead>
+            <TableHead>Absent</TableHead>
+            <TableHead>Late</TableHead>
+            <TableHead>Excused</TableHead>
+            <TableHead>Rate</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sessions.map((session) => {
+            const rate =
+              session.totalStudents > 0
+                ? Math.round(
+                    ((session.presentCount + session.lateCount) /
+                      session.totalStudents) *
+                      100
+                  )
+                : 0;
+
+            return (
+              <TableRow
+                key={`${session.batchId}-${session.date}`}
+                className="cursor-pointer"
+                onClick={() => onViewSession(session)}
+              >
+                <TableCell className="font-medium text-foreground">
+                  {format(new Date(session.date), "d MMM yyyy")}
+                </TableCell>
+                <TableCell>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewBatch(session);
+                    }}
+                    className="text-foreground hover:underline"
+                  >
+                    {session.batchName}
+                  </button>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {session.presentCount}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {session.absentCount}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {session.lateCount}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {session.excusedCount}
+                </TableCell>
+                <TableCell>
+                  <span className={cn("font-medium", getRateColor(rate))}>
+                    {rate}%
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`View ${session.batchName} attendance on ${session.date}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewSession(session);
+                    }}
+                  >
+                    <Eye
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
